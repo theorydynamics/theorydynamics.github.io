@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theory Dynamics — Physics-Based Engineering Solutions</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS VARIABLES ===== */
+:root {
+  --bg-dark: #0a0a0a;
+  --bg-card: #111111;
+  --bg-card-hover: #1a1a1a;
+  --accent: #d4a03c;
+  --accent-dim: #b8872e;
+  --text-primary: #e8e4dc;
+  --text-secondary: #8a8578;
+  --text-muted: #5a564e;
+  --border: #2a2824;
+  --border-accent: #3d3728;
+  --white: #f5f2ec;
+  --red-label: #c43c2e;
+  --green-label: #3a8a4a;
+  --blue-survey: #3a6a9a;
+  --orange-weld: #c47a2e;
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { 
+  scroll-behavior: smooth; 
+  background: var(--bg-dark);
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Source Sans 3', sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-dark);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== GRAIN OVERLAY ===== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ===== NAVIGATION ===== */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--white);
+  text-decoration: none;
+}
+
+.nav-logo span { color: var(--accent); }
+
+.nav-links { display: flex; gap: 32px; align-items: center; }
+
+.nav-links a {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover { color: var(--accent); }
+
+/* Mobile menu */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+}
+.menu-toggle span {
+  width: 24px; height: 2px;
+  background: var(--text-primary);
+  transition: 0.3s;
+}
+
+/* ===== HERO ===== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 60px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -20%;
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(212,160,60,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.2s forwards;
+}
+
+.hero h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: clamp(42px, 7vw, 96px);
+  line-height: 1.0;
+  letter-spacing: -1px;
+  color: var(--white);
+  max-width: 900px;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.4s forwards;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.hero-desc {
+  font-size: 19px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin-bottom: 48px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.6s forwards;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.8s forwards;
+}
+
+.btn {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 36px;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: all 0.3s;
+  display: inline-block;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(212,160,60,0.05);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-dark);
+}
+
+.btn-primary:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: var(--bg-dark);
+}
+
+/* ===== DIVIDER LINE ===== */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-accent) 20%, var(--accent) 50%, var(--border-accent) 80%, transparent);
+  margin: 0 60px;
+}
+
+/* ===== SECTION COMMON ===== */
+section {
+  padding: 100px 60px;
+}
+
+.section-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: clamp(28px, 4vw, 48px);
+  color: var(--white);
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
+}
+
+.section-desc {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  max-width: 700px;
+  margin-bottom: 56px;
+  line-height: 1.8;
+}
+
+/* ===== WHAT WE DO — STATS BAR ===== */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  margin-bottom: 80px;
+}
+
+.stat-item {
+  background: var(--bg-dark);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.stat-number {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 42px;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ===== SERVICES GRID ===== */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  background: var(--border);
+}
+
+.service-card {
+  background: var(--bg-card);
+  padding: 56px 48px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.4s;
+  cursor: default;
+}
+
+.service-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px; height: 0;
+  transition: height 0.4s;
+}
+
+.service-card:hover::before { height: 100%; }
+
+.service-card:nth-child(1)::before { background: var(--red-label); }
+.service-card:nth-child(2)::before { background: var(--orange-weld); }
+.service-card:nth-child(3)::before { background: var(--blue-survey); }
+.service-card:nth-child(4)::before { background: var(--accent); }
+
+.service-number {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 64px;
+  color: var(--border);
+  position: absolute;
+  top: 20px; right: 32px;
+  line-height: 1;
+}
+
+.service-tag {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 20px;
+}
+
+.service-card:nth-child(1) .service-tag { color: var(--red-label); border: 1px solid var(--red-label); }
+.service-card:nth-child(2) .service-tag { color: var(--orange-weld); border: 1px solid var(--orange-weld); }
+.service-card:nth-child(3) .service-tag { color: var(--blue-survey); border: 1px solid var(--blue-survey); }
+.service-card:nth-child(4) .service-tag { color: var(--accent); border: 1px solid var(--accent); }
+
+.service-title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 26px;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+
+.service-text {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+
+.service-list {
+  list-style: none;
+  padding: 0;
+}
+
+.service-list li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-list li:last-child { border-bottom: none; }
+
+.service-list li::before {
+  content: '—';
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ===== APPROACH SECTION ===== */
+.approach-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  background: var(--border);
+}
+
+.approach-card {
+  background: var(--bg-card);
+  padding: 48px 40px;
+}
+
+.approach-icon {
+  font-size: 28px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.approach-title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--white);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.approach-text {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ===== ABOUT ===== */
+.about-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.about-text p {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.about-facts {
+  border-left: 1px solid var(--border);
+  padding-left: 48px;
+}
+
+.about-fact {
+  margin-bottom: 32px;
+}
+
+.about-fact-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.about-fact-value {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--white);
+}
+
+/* ===== CONTACT ===== */
+.contact-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+}
+
+.contact-info { display: flex; flex-direction: column; gap: 32px; }
+
+.contact-item-label {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.contact-item-value {
+  font-size: 18px;
+  color: var(--white);
+}
+
+.contact-item-value a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.contact-item-value a:hover { color: var(--white); }
+
+.contact-note {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  border-left: 2px solid var(--accent);
+  padding-left: 24px;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  padding: 40px 60px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-left {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-right {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  nav { padding: 0 24px; }
+  .nav-links { 
+    display: none;
+    position: absolute;
+    top: 64px; left: 0; right: 0;
+    background: rgba(10,10,10,0.98);
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-links.open { display: flex; }
+  .menu-toggle { display: flex; }
+
+  section { padding: 64px 24px; }
+  .hero { padding: 100px 24px 64px; }
+  .divider { margin: 0 24px; }
+
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .services-grid { grid-template-columns: 1fr; }
+  .approach-grid { grid-template-columns: 1fr; }
+  .about-content { grid-template-columns: 1fr; gap: 40px; }
+  .about-facts { border-left: none; padding-left: 0; border-top: 1px solid var(--border); padding-top: 32px; }
+  .contact-layout { grid-template-columns: 1fr; gap: 40px; }
+  footer { flex-direction: column; gap: 16px; text-align: center; padding: 32px 24px; }
+}
+
+@media (max-width: 480px) {
+  .stats-bar { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAVIGATION ===== -->
+<nav>
+  <a href="#" class="nav-logo">Theory <span>Dynamics</span></a>
+  <button class="menu-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-links">
+    <a href="#services">Services</a>
+    <a href="#approach">Approach</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-label">Physics-Based Engineering Solutions</div>
+  <h1>Better Software.<br>Better <em>Performance.</em></h1>
+  <p class="hero-desc">We replace outdated control systems with proprietary physics-based algorithms. The same hardware. Dramatically better results.</p>
+  <div class="hero-cta">
+    <a href="#services" class="btn btn-primary">What We Do</a>
+    <a href="#contact" class="btn">Get In Touch</a>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== STATS BAR ===== -->
+<section id="services">
+  <div class="section-label">What We Do</div>
+  <div class="section-title">Four Divisions. One Principle.</div>
+  <p class="section-desc">Every system we work with has capable hardware held back by outdated software. We fix the software using first-principles physics — not bigger lookup tables, not bolt-on fixes. Actual physics, calculated live, every cycle.</p>
+
+  <div class="stats-bar reveal">
+    <div class="stat-item">
+      <div class="stat-number">4</div>
+      <div class="stat-label">Divisions</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">UK</div>
+      <div class="stat-label">Patent Held</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">26</div>
+      <div class="stat-label">Physics Systems</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">Live</div>
+      <div class="stat-label">Not Lookup Tables</div>
+    </div>
+  </div>
+
+  <!-- ===== SERVICES GRID ===== -->
+  <div class="services-grid reveal">
+
+    <!-- ECU -->
+    <div class="service-card">
+      <div class="service-number">01</div>
+      <div class="service-tag">TD — Engine</div>
+      <div class="service-title">Engine Performance</div>
+      <p class="service-text">Every engine control unit on Earth reads from a static lookup table — a technology unchanged since 1985. Our system replaces those tables with live physics calculations. The hardware stays the same. The brain gets an upgrade.</p>
+      <ul class="service-list">
+        <li>Live combustion physics calculated every engine cycle</li>
+        <li>Adaptive learning — the system tunes itself to any engine</li>
+        <li>Improved power, fuel economy, and emissions simultaneously</li>
+        <li>Motorcycle, automotive, marine, industrial, and aerospace applications</li>
+        <li>Flash-based delivery — no hardware modifications required</li>
+      </ul>
+    </div>
+
+    <!-- WELD -->
+    <div class="service-card">
+      <div class="service-number">02</div>
+      <div class="service-tag">TD — Inspect</div>
+      <div class="service-title">Weld Inspection</div>
+      <p class="service-text">Automated defect detection across the full range of weld failure types. Our system analyses weld imagery against international standards and delivers clear, actionable reports — faster and more consistently than manual inspection.</p>
+      <ul class="service-list">
+        <li>19 defect types detected per EN ISO standards</li>
+        <li>Six enhancement stages for image analysis</li>
+        <li>Three independent analysis systems for cross-validation</li>
+        <li>Comprehensive legal-grade reporting</li>
+        <li>Subscription tiers from workshop to enterprise level</li>
+      </ul>
+    </div>
+
+    <!-- GEO -->
+    <div class="service-card">
+      <div class="service-number">03</div>
+      <div class="service-tag">TD — Survey</div>
+      <div class="service-title">Geological Survey</div>
+      <p class="service-text">Multi-layer convergence analysis for mineral prospecting. We combine geological, geophysical, geochemical, and remote sensing data into a single probability assessment — revealing targets that single-method surveys miss.</p>
+      <ul class="service-list">
+        <li>Six independent data layers analysed simultaneously</li>
+        <li>Satellite imagery, geological mapping, and geophysical data</li>
+        <li>Convergence scoring identifies high-probability targets</li>
+        <li>Interactive visualisation with zone-by-zone analysis</li>
+        <li>Applicable to gold, base metals, and mineral exploration</li>
+      </ul>
+    </div>
+
+    <!-- CONSULTING -->
+    <div class="service-card">
+      <div class="service-number">04</div>
+      <div class="service-tag">TD — Consult</div>
+      <div class="service-title">Engineering Consulting</div>
+      <p class="service-text">For organisations running combustion systems, turbines, or power generation equipment — we analyse your existing control architecture and identify where physics-based optimisation can deliver measurable improvement.</p>
+      <ul class="service-list">
+        <li>Coal, gas, and multi-fuel power plant optimisation</li>
+        <li>Gas turbine combustion control analysis</li>
+        <li>Aerospace and propulsion system consulting</li>
+        <li>Nozzle geometry and thermoacoustic coupling</li>
+        <li>Licensing of proprietary physics-based control algorithms</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== APPROACH ===== -->
+<section id="approach">
+  <div class="section-label">Our Approach</div>
+  <div class="section-title">Why This Works</div>
+  <p class="section-desc">The hardware in modern engines, turbines, and industrial systems has improved enormously over forty years. The software controlling that hardware has not. We close that gap.</p>
+
+  <div class="approach-grid reveal">
+    <div class="approach-card">
+      <span class="approach-icon">⚡</span>
+      <div class="approach-title">Live Physics, Not Static Tables</div>
+      <p class="approach-text">Conventional control systems read pre-calculated values from a grid. Our systems calculate the optimal output from first-principles physics in real time — every cycle, adapting to actual conditions as they change.</p>
+    </div>
+    <div class="approach-card">
+      <span class="approach-icon">⟳</span>
+      <div class="approach-title">Self-Learning Adaptation</div>
+      <p class="approach-text">Our algorithms learn the characteristics of each individual system within the first operating cycles. Different fuel, different wear, different conditions — the physics adapts automatically without manual tuning.</p>
+    </div>
+    <div class="approach-card">
+      <span class="approach-icon">◈</span>
+      <div class="approach-title">Same Hardware, Better Results</div>
+      <p class="approach-text">We don't require new sensors, new actuators, or new equipment. The existing hardware in most modern systems is already capable of far more than its current software demands. We unlock that potential.</p>
+    </div>
+    <div class="approach-card">
+      <span class="approach-icon">△</span>
+      <div class="approach-title">Clean and Profitable</div>
+      <p class="approach-text">Better combustion means less fuel burned for the same output. That reduces costs and reduces emissions in the same upgrade. You don't have to choose between performance and environmental responsibility.</p>
+    </div>
+    <div class="approach-card">
+      <span class="approach-icon">▣</span>
+      <div class="approach-title">Multi-Domain Expertise</div>
+      <p class="approach-text">Our physics framework applies across scales and industries — from motorcycle engines to power station boilers. The principles are universal. The implementation is tailored to each application.</p>
+    </div>
+    <div class="approach-card">
+      <span class="approach-icon">◉</span>
+      <div class="approach-title">Proprietary and Protected</div>
+      <p class="approach-text">Our algorithms are trade secrets — encrypted, compiled, and read-protected at the hardware level. We license the results, not the method. Your competitive advantage stays exclusive.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== ABOUT ===== -->
+<section id="about">
+  <div class="section-label">About</div>
+  <div class="section-title">Theory Dynamics</div>
+
+  <div class="about-content reveal">
+    <div class="about-text">
+      <p>Theory Dynamics was founded by Craig Gillatt — an engineer and inventor based in Tuxford, Nottinghamshire. The company holds UK Patent #2522970.9 and develops proprietary physics-based control systems across multiple industries.</p>
+      <p>Our approach is built on a simple observation: the hardware in modern engines and industrial systems has improved enormously over the past four decades. Sensors are more precise. Materials are more capable. Processing power has increased a thousandfold. But the fundamental software philosophy controlling these systems has remained largely unchanged since the mid-1980s.</p>
+      <p>We close that gap. Our systems replace static lookup tables with live physics calculations — using the full processing power of modern hardware to optimise performance in real time. The result is better output, lower fuel consumption, and reduced emissions from existing equipment.</p>
+      <p>Theory Dynamics works with clients ranging from individual vehicle owners to industrial operators and aerospace companies. Whether you need a single engine flash or a plant-wide optimisation programme, the physics scales.</p>
+    </div>
+
+    <div class="about-facts">
+      <div class="about-fact">
+        <div class="about-fact-label">Founded</div>
+        <div class="about-fact-value">Tuxford, Nottinghamshire, UK</div>
+      </div>
+      <div class="about-fact">
+        <div class="about-fact-label">Founder</div>
+        <div class="about-fact-value">Craig Gillatt</div>
+      </div>
+      <div class="about-fact">
+        <div class="about-fact-label">Patent</div>
+        <div class="about-fact-value">UK #2522970.9</div>
+      </div>
+      <div class="about-fact">
+        <div class="about-fact-label">Approach</div>
+        <div class="about-fact-value">First-Principles Physics</div>
+      </div>
+      <div class="about-fact">
+        <div class="about-fact-label">Sectors</div>
+        <div class="about-fact-value">Automotive, Aerospace, Industrial, Mining</div>
+      </div>
+      <div class="about-fact">
+        <div class="about-fact-label">IP Protection</div>
+        <div class="about-fact-value">Trade Secret + Patent</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===== CONTACT ===== -->
+<section id="contact">
+  <div class="section-label">Contact</div>
+  <div class="section-title">Let's Talk</div>
+
+  <div class="contact-layout reveal">
+    <div class="contact-info">
+      <div>
+        <div class="contact-item-label">Email</div>
+        <div class="contact-item-value"><a href="mailto:craig@theorydynamics.co.uk">craig@theorydynamics.co.uk</a></div>
+      </div>
+      <div>
+        <div class="contact-item-label">Location</div>
+        <div class="contact-item-value">Tuxford, Nottinghamshire, UK</div>
+      </div>
+      <div>
+        <div class="contact-item-label">Enquiries</div>
+        <div class="contact-item-value">Engine Performance — Weld Inspection — Geological Survey — Consulting</div>
+      </div>
+    </div>
+    <div class="contact-note">
+      We work with individual owners, workshops, industrial operators, and aerospace companies. Whether you're looking for a single engine optimisation or a plant-wide efficiency programme, get in touch and we'll discuss what's possible for your specific application.
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-left">&copy; 2026 Theory Dynamics. All rights reserved. UK Patent #2522970.9</div>
+  <div class="footer-right">Tuxford, Nottinghamshire</div>
+</footer>
+
+<!-- ===== SCROLL REVEAL ===== -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  
+  reveals.forEach(function(el) { observer.observe(el); });
+});
+</script>
+
+</body>
+</html>
