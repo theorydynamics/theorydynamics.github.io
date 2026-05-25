@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AcouCheck — Engine Acoustic Diagnostics</title>
+<meta name="description" content="Hear what your engine is telling you. Professional acoustic diagnostic reports for cars, bikes and any combustion engine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg-elev: #121418;
+    --bg-elev2: #181b20;
+    --grid: rgba(255, 255, 255, 0.025);
+    --text: #f0f2f5;
+    --text-dim: #8a929b;
+    --text-faint: #4a5058;
+    --accent-warm: #ff7a00;
+    --accent-cool: #00d4ff;
+    --accent-locked: #ffaa00;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Page-wide subtle grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ============================ HEADER ============================ */
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 36px;
+    background: rgba(10, 11, 13, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 5px;
+    line-height: 1;
+  }
+  .wordmark .check { color: var(--accent-warm); }
+
+  .nav {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav a:hover { color: var(--text); }
+
+  .nav .cta {
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    padding: 8px 18px;
+    transition: all 0.2s;
+  }
+
+  .nav .cta:hover {
+    background: var(--accent-warm);
+    color: var(--bg);
+    border-color: var(--accent-warm);
+  }
+
+  /* ============================ HERO ============================ */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    padding: 96px 0 48px;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    z-index: 1;
+  }
+
+  .hero-frame {
+    position: relative;
+    margin: 0 36px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    max-height: calc(100vh - 220px);
+  }
+
+  .hero-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  .hero-tag {
+    padding: 32px 36px 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+  }
+
+  .hero-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 0.92;
+    letter-spacing: 2px;
+    color: var(--text);
+    max-width: 850px;
+  }
+
+  .hero-headline em {
+    color: var(--accent-warm);
+    font-style: normal;
+  }
+
+  .hero-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.7;
+  }
+
+  /* ============================ SECTION SHELL ============================ */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 120px 36px;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent-warm);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--accent-warm);
+  }
+
+  .section-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: 1;
+    letter-spacing: 1.5px;
+    margin-bottom: 32px;
+    max-width: 900px;
+  }
+
+  .section-headline em {
+    color: var(--accent-warm);
+    font-style: normal;
+  }
+
+  .section-lead {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-width: 720px;
+    margin-bottom: 64px;
+  }
+
+  /* ============================ INTRO PITCH ============================ */
+  .intro {
+    padding: 96px 36px;
+    text-align: left;
+  }
+
+  .intro-pitch {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 300;
+    font-size: clamp(22px, 2.4vw, 32px);
+    line-height: 1.5;
+    color: var(--text);
+    max-width: 1100px;
+  }
+
+  .intro-pitch strong {
+    color: var(--accent-warm);
+    font-weight: 600;
+  }
+
+  /* ============================ WHAT WE FIND ============================ */
+  .findings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .finding {
+    background: var(--bg);
+    padding: 32px 28px;
+    transition: background 0.3s;
+  }
+
+  .finding:hover {
+    background: var(--bg-elev);
+  }
+
+  .finding-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .finding-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .finding-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  /* ============================ CASE STUDIES ============================ */
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .case-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    padding: 32px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .case-card:hover {
+    border-color: var(--accent-warm);
+    transform: translateY(-4px);
+  }
+
+  .case-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .case-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--accent-warm);
+    letter-spacing: 1px;
+  }
+
+  .case-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    text-align: right;
+    text-transform: uppercase;
+    line-height: 1.7;
+  }
+
+  .case-vehicle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+
+  .case-engine {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .case-findings {
+    flex: 1;
+    margin-bottom: 28px;
+  }
+
+  .case-findings-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .case-findings ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .case-findings li {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+    padding: 10px 0 10px 22px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .case-findings li:last-child { border-bottom: none; }
+
+  .case-findings li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    width: 10px;
+    height: 1px;
+    background: var(--accent-warm);
+  }
+
+  .case-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    text-decoration: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .case-cta:hover {
+    background: var(--accent-warm);
+    color: var(--bg);
+    border-color: var(--accent-warm);
+  }
+
+  .case-cta.pending {
+    border-style: dashed;
+    color: var(--text-dim);
+    cursor: default;
+  }
+
+  .case-cta.pending:hover {
+    background: transparent;
+    color: var(--text-dim);
+  }
+
+  .case-cta svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ============================ HOW IT WORKS ============================ */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .step {
+    padding: 36px 28px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    position: relative;
+  }
+
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    color: var(--accent-warm);
+    opacity: 0.25;
+    margin-bottom: 16px;
+  }
+
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+
+  .step-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  /* ============================ CONTACT ============================ */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .contact-method {
+    padding: 28px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .contact-method:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .contact-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .contact-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+    transition: color 0.2s;
+  }
+
+  a.contact-value:hover { color: var(--accent-warm); }
+
+  .contact-aside {
+    padding: 36px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+  }
+
+  .contact-aside-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+
+  .contact-aside-headline em {
+    color: var(--accent-warm);
+    font-style: normal;
+  }
+
+  .contact-aside-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  .contact-aside ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .contact-aside li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    text-transform: uppercase;
+    padding: 8px 0 8px 18px;
+    position: relative;
+  }
+
+  .contact-aside li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--accent-warm);
+  }
+
+  /* ============================ FOOTER ============================ */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+
+  .site-footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .site-footer a:hover { color: var(--accent-warm); }
+
+  /* ============================ MOBILE ============================ */
+  @media (max-width: 768px) {
+    .site-header { padding: 14px 18px; }
+    .nav { gap: 14px; }
+    .nav a:not(.cta) { display: none; }
+    .nav .cta { padding: 7px 14px; font-size: 10px; }
+    .wordmark { font-size: 20px; letter-spacing: 4px; }
+
+    .hero { padding-top: 72px; }
+    .hero-frame { margin: 0 14px; aspect-ratio: 4/3; max-height: none; }
+    .hero-tag { padding: 24px 18px 0; grid-template-columns: 1fr; gap: 16px; }
+    .hero-sub { text-align: left; }
+
+    section { padding: 72px 18px; }
+
+    .intro { padding: 56px 18px; }
+
+    .contact-grid { grid-template-columns: 1fr; gap: 32px; }
+    .contact-value { font-size: 22px; }
+
+    .site-footer { padding: 24px 18px; flex-direction: column; gap: 12px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================ HEADER ================ -->
+<header class="site-header">
+  <div class="wordmark">ACOU<span class="check">CHECK</span></div>
+  <nav class="nav">
+    <a href="#what">What We Find</a>
+    <a href="#cases">Case Studies</a>
+    <a href="#contact" class="cta">Book A Diagnostic</a>
+  </nav>
+</header>
+
+<!-- ================ HERO ================ -->
+<div class="hero">
+  <div class="hero-frame">
+    <iframe src="acoucheck_signature.html" title="Live acoustic signature"></iframe>
+  </div>
+  <div class="hero-tag">
+    <h1 class="hero-headline">
+      Hear what your<br>
+      engine is <em>telling you</em>.
+    </h1>
+    <div class="hero-sub">
+      Engine Acoustic Diagnostics<br>
+      Cars · Bikes · Marine · Any Combustion Engine
+    </div>
+  </div>
+</div>
+
+<!-- ================ INTRO PITCH ================ -->
+<section class="intro" id="intro">
+  <div class="section-label">What it is</div>
+  <p class="intro-pitch">
+    Every engine has a <strong>unique acoustic signature</strong> — the sum of every firing event, every valve, every bearing, every spinning shaft. An AcouCheck reads that signature and turns it into a clear, written report. <strong>No expensive workshop bills.</strong> No guesswork. Just an honest read on how your engine is actually running.
+  </p>
+</section>
+
+<!-- ================ WHAT WE FIND ================ -->
+<section id="what">
+  <div class="section-label">What We Find</div>
+  <h2 class="section-headline">A full <em>health check</em> from sound alone.</h2>
+  <p class="section-lead">
+    Our acoustic analysis spots issues invisible to a basic OBD scan. Each report covers the following checks with plain-English findings and clear recommendations.
+  </p>
+
+  <div class="findings-grid">
+    <div class="finding">
+      <div class="finding-num">01</div>
+      <h3 class="finding-title">Cylinder Balance</h3>
+      <p class="finding-desc">Is each cylinder pulling its weight? Weak cylinders show up immediately.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">02</div>
+      <h3 class="finding-title">Misfire Signature</h3>
+      <p class="finding-desc">Detects irregular firing patterns before they trigger a fault code.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">03</div>
+      <h3 class="finding-title">Knock & Detonation</h3>
+      <p class="finding-desc">Pre-ignition events that quietly destroy power and pistons.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">04</div>
+      <h3 class="finding-title">Turbo Health</h3>
+      <p class="finding-desc">Bearing condition, surge events, shaft resonance — caught early.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">05</div>
+      <h3 class="finding-title">Valve Train</h3>
+      <p class="finding-desc">Tappet rattle, valve lash, timing chain stretch — all have a sound.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">06</div>
+      <h3 class="finding-title">Bearing Wear</h3>
+      <p class="finding-desc">Sub-harmonic resonances reveal bearings approaching end of life.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">07</div>
+      <h3 class="finding-title">Injector Consistency</h3>
+      <p class="finding-desc">A clean injector sounds different to a tired one. We hear both.</p>
+    </div>
+    <div class="finding">
+      <div class="finding-num">08</div>
+      <h3 class="finding-title">Calibration Sanity</h3>
+      <p class="finding-desc">Tachometer accuracy, idle stability, throttle response, sensor offsets.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================ HOW IT WORKS ================ -->
+<section id="how">
+  <div class="section-label">How It Works</div>
+  <h2 class="section-headline">Three steps. <em>One honest report.</em></h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-title">We Record</div>
+      <p class="step-desc">A short recording captured at the engine while it idles and revs. No wires into the ECU. No disassembly.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-title">We Analyse</div>
+      <p class="step-desc">The acoustic signature is decomposed against your specific engine configuration — cylinder count, fuel type, forced induction.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-title">You Get The Report</div>
+      <p class="step-desc">A clean, written diagnostic. What's healthy. What needs watching. What needs attention now. Plain English.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================ CASE STUDIES ================ -->
+<section id="cases">
+  <div class="section-label">Case Studies</div>
+  <h2 class="section-headline">Real engines. <em>Real findings.</em></h2>
+  <p class="section-lead">
+    Three diagnostics from our recent work. Each report is the customer's full deliverable — the same standard you'd receive for your engine.
+  </p>
+
+  <div class="case-grid">
+
+    <!-- CASE 01 — CORSA 1.0L (Grandad's own car · proof-of-concept · no PDF) -->
+    <div class="case-card">
+      <div class="case-header">
+        <div class="case-num">01</div>
+        <div class="case-date">
+          April 2026<br>
+          First Engine Tested
+        </div>
+      </div>
+      <div class="case-vehicle">Vauxhall Corsa</div>
+      <div class="case-engine">1.0L · 3-Cylinder · Petrol</div>
+
+      <div class="case-findings">
+        <div class="case-findings-label">Key findings</div>
+        <ul>
+          <li>Clean three-cylinder firing balance across idle and rev</li>
+          <li>Healthy mechanical noise floor for the engine's age</li>
+          <li>Established the diagnostic protocol used on every engine since</li>
+        </ul>
+      </div>
+
+      <a href="#" class="case-cta pending">
+        <span>Proof Of Concept · R&amp;D</span>
+      </a>
+    </div>
+
+    <!-- CASE 02 — CORSA 1.4 56-PLATE (customer car · today · full PDF report) -->
+    <div class="case-card">
+      <div class="case-header">
+        <div class="case-num">02</div>
+        <div class="case-date">
+          25 May 2026<br>
+          Customer Diagnostic
+        </div>
+      </div>
+      <div class="case-vehicle">Vauxhall Corsa</div>
+      <div class="case-engine">1.4L · 4-Cylinder · Petrol · 2006 (56 Plate)</div>
+
+      <div class="case-findings">
+        <div class="case-findings-label">Key findings</div>
+        <ul>
+          <li>Excellent cylinder balance — all four firing evenly (46 dB margin)</li>
+          <li>Bottom end running clean despite ~20 years on the engine</li>
+          <li>Idle hunt and mild high-load pinking flagged with clear servicing path</li>
+        </ul>
+      </div>
+
+      <a href="Engine_Acoustic_Diagnostic_Report_Corsa.pdf" class="case-cta" download>
+        <span>Download Full Report</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </a>
+    </div>
+
+    <!-- CASE 03 — FIAT UNO ABARTH TURBO (Smurf · customer car · PDF report) -->
+    <div class="case-card">
+      <div class="case-header">
+        <div class="case-num">03</div>
+        <div class="case-date">
+          24 May 2026<br>
+          Customer Diagnostic
+        </div>
+      </div>
+      <div class="case-vehicle">Fiat Uno Abarth Turbo</div>
+      <div class="case-engine">1.4L T-Jet · 4-Cylinder · Turbo Petrol · 218 BHP</div>
+
+      <div class="case-findings">
+        <div class="case-findings-label">Key findings</div>
+        <ul>
+          <li>Excellent cylinder balance — all four firing evenly on a heavily modified engine</li>
+          <li>Clean combustion signature with no detonation under load</li>
+          <li>Dashboard tachometer calibration mismatch identified (reading ~2.7× under actual engine speed)</li>
+        </ul>
+      </div>
+
+      <a href="Engine_Acoustic_Diagnostic_Report.pdf" class="case-cta" download>
+        <span>Download Full Report</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================ CONTACT ================ -->
+<section id="contact">
+  <div class="section-label">Get In Touch</div>
+  <h2 class="section-headline">Book a <em>diagnostic.</em></h2>
+  <p class="section-lead">
+    Get in touch by phone or email — we'll arrange a time to take the recording and have the report back to you within 48 hours.
+  </p>
+
+  <div class="contact-grid">
+    <div>
+      <div class="contact-method">
+        <div class="contact-label">Email</div>
+        <a href="mailto:cgillatt55@gmail.com?subject=AcouCheck%20Diagnostic%20Enquiry" class="contact-value">cgillatt55@gmail.com</a>
+      </div>
+      <div class="contact-method">
+        <div class="contact-label">Phone</div>
+        <a href="tel:+447947765120" class="contact-value">07947 765 120</a>
+      </div>
+      <div class="contact-method">
+        <div class="contact-label">Based</div>
+        <span class="contact-value">Tuxford, Nottinghamshire</span>
+      </div>
+    </div>
+
+    <aside class="contact-aside">
+      <h3 class="contact-aside-headline">When you get in touch, <em>tell us:</em></h3>
+      <p class="contact-aside-body">A few quick details lets us prepare and gives you a faster turnaround:</p>
+      <ul>
+        <li>Vehicle make &amp; model</li>
+        <li>Engine size &amp; fuel type</li>
+        <li>Cylinder count if known</li>
+        <li>Any symptoms you've noticed</li>
+        <li>Location for the recording</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<!-- ================ FOOTER ================ -->
+<footer class="site-footer">
+  <div>© 2026 AcouCheck · A Service Of Theory Dynamics Ltd</div>
+  <div>Tuxford · Nottinghamshire · UK</div>
+</footer>
+
+</body>
+</html>
