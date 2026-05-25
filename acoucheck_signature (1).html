@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AcouCheck — Live Acoustic Signature</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg-elev: #121418;
+    --grid: rgba(255, 255, 255, 0.03);
+    --grid-strong: rgba(255, 255, 255, 0.06);
+    --text: #f0f2f5;
+    --text-dim: #6b7280;
+    --text-faint: #3a3f47;
+    --accent-cool: #00d4ff;
+    --accent-warm: #ff7a00;
+    --accent-locked: #ffaa00;
+    --border: rgba(255, 255, 255, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Subtle grid background — engineering blueprint feel */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .stage {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+  }
+
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 28px 36px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .brand-mark {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 6px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .brand-mark .check {
+    color: var(--accent-warm);
+  }
+
+  .brand-tag {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .telemetry {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  .telem-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 92px;
+  }
+
+  .telem-label {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .telem-value {
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .telem-value.warm { color: var(--accent-warm); }
+
+  /* ===== CANVAS STAGE ===== */
+  .canvas-host {
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Crosshair markers in corners */
+  .marker {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--text-faint);
+    z-index: 3;
+  }
+  .marker.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+  .marker.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+  .marker.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+  .marker.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+  /* Status row — sits BETWEEN top-bar and canvas frame, holds the live status badge */
+  .status-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 36px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(18, 20, 24, 0.6);
+    border: 1px solid var(--border);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-cool);
+    box-shadow: 0 0 12px currentColor;
+    transition: background 0.6s, box-shadow 0.6s;
+  }
+
+  .status-text {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ===== BOTTOM BAR ===== */
+  .bottom-bar {
+    padding: 24px 36px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .lock-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lock-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .lock-bar-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .lock-bar-value {
+    font-size: 22px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+
+  .lock-bar-value.locked {
+    color: var(--accent-warm);
+  }
+
+  .lock-bar-track {
+    width: 100%;
+    height: 3px;
+    background: var(--bg-elev);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .lock-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-cool), var(--accent-warm));
+    transition: width 0.2s linear, background 0.6s;
+    box-shadow: 0 0 8px var(--accent-cool);
+  }
+
+  .stamp {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ===== Subtle grain overlay ===== */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    z-index: 5;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .top-bar { padding: 18px 20px; flex-direction: column; gap: 18px; }
+    .telemetry { gap: 18px; }
+    .telem-cell { min-width: 70px; }
+    .telem-value { font-size: 14px; }
+    .bottom-bar { padding: 18px 20px; grid-template-columns: 1fr; }
+    .stamp { text-align: left; }
+    .brand-mark { font-size: 24px; letter-spacing: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<div class="stage">
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-mark">ACOU<span class="check">CHECK</span></div>
+      <div class="brand-tag">Engine Acoustic Diagnostics</div>
+    </div>
+    <div class="telemetry">
+      <div class="telem-cell">
+        <div class="telem-label">Freq A</div>
+        <div class="telem-value" id="freq-a">— Hz</div>
+      </div>
+      <div class="telem-cell">
+        <div class="telem-label">Freq B</div>
+        <div class="telem-value" id="freq-b">140 Hz</div>
+      </div>
+      <div class="telem-cell">
+        <div class="telem-label">Phase</div>
+        <div class="telem-value" id="phase">—°</div>
+      </div>
+      <div class="telem-cell">
+        <div class="telem-label">Sample</div>
+        <div class="telem-value" id="sample">44.1 kHz</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATUS ROW (above canvas frame) ===== -->
+  <div class="status-row">
+    <div class="status-badge">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-text" id="status-text">Initialising</div>
+    </div>
+  </div>
+
+  <!-- ===== CANVAS STAGE ===== -->
+  <div class="canvas-host">
+    <div class="marker tl"></div>
+    <div class="marker tr"></div>
+    <div class="marker bl"></div>
+    <div class="marker br"></div>
+
+    <div id="canvas-mount"></div>
+  </div>
+
+  <!-- ===== BOTTOM BAR ===== -->
+  <div class="bottom-bar">
+    <div class="lock-bar-group">
+      <div class="lock-bar-header">
+        <div class="lock-bar-label">Signal Lock</div>
+        <div class="lock-bar-value" id="lock-value">0%</div>
+      </div>
+      <div class="lock-bar-track">
+        <div class="lock-bar-fill" id="lock-fill"></div>
+      </div>
+    </div>
+    <div class="stamp">
+      Acoustic Pattern Analysis<br>
+      Universal Engine Compatibility
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  // ===== Mount =====
+  const mount = document.getElementById('canvas-mount');
+  const host = mount.parentElement;
+  let W = host.clientWidth, H = host.clientHeight;
+
+  const scene = new THREE.Scene();
+  scene.background = null;
+
+  const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  mount.appendChild(renderer.domElement);
+
+  // ===== Signature pattern core =====
+  // Loop: 0..1..0 over LOOP_SEC seconds
+  // 0.00–0.20  STARTUP    (loose bowtie, cool blue, low lock)
+  // 0.20–0.65  STABILISING (collapsing, colour warming, lock rising)
+  // 0.65–0.95  LOCKED      (tight clean shape, warm amber, lock 95-99%)
+  // 0.95–1.00  RESET        (quick fade back)
+  const LOOP_SEC = 30;
+
+  function loopState(u){
+    // u in [0,1]
+    let phase, lockPct, amp, ratio, delta, freqA, phaseDeg;
+    const c1 = new THREE.Color(0x00d4ff);  // cool blue
+    const c2 = new THREE.Color(0xff7a00);  // warm orange
+    const c3 = new THREE.Color(0xffaa00);  // locked amber
+
+    if (u < 0.20){
+      // STARTUP — big loose bowtie
+      const t = u / 0.20;
+      phase = 'startup';
+      lockPct = 5 + t * 12;          // 5..17
+      amp = 8.5 - t * 0.8;            // big
+      ratio = 1.04 - t * 0.005;       // slightly off
+      delta = Math.PI / 2.2 + Math.sin(t * Math.PI * 2) * 0.1;
+      freqA = 108 + Math.sin(t * Math.PI) * 4;
+      phaseDeg = -150 + t * 20;
+    } else if (u < 0.65){
+      // STABILISING — collapsing, locking
+      const t = (u - 0.20) / 0.45;
+      phase = 'stabilising';
+      lockPct = 17 + t * 60;          // 17..77
+      amp = 7.7 - Math.pow(t, 1.3) * 3.8;
+      ratio = 1.035 - t * 0.030;
+      delta = Math.PI/2.4 * (1 - t * 0.85);
+      freqA = 112 + t * 18;           // 112..130
+      phaseDeg = -130 + t * 110;
+    } else if (u < 0.95){
+      // LOCKED — tight clean shape
+      const t = (u - 0.65) / 0.30;
+      phase = 'locked';
+      lockPct = 77 + t * 22;          // 77..99
+      amp = 3.9 - t * 0.2;
+      ratio = 1.005 - t * 0.003;
+      delta = 0.16 - t * 0.12;
+      freqA = 130 + Math.sin(t * Math.PI * 2) * 1.5;
+      phaseDeg = -20 + t * 18;
+    } else {
+      // RESET
+      const t = (u - 0.95) / 0.05;
+      phase = 'reset';
+      lockPct = 99 - t * 94;
+      amp = 3.7 + t * 4.7;
+      ratio = 1.002 + t * 0.038;
+      delta = 0.04 + t * 1.3;
+      freqA = 131 - t * 23;
+      phaseDeg = -2 - t * 148;
+    }
+
+    // Colour mix
+    let col;
+    if (u < 0.20){
+      col = c1.clone();
+    } else if (u < 0.65){
+      const t = (u - 0.20) / 0.45;
+      col = c1.clone().lerp(c2, t);
+    } else if (u < 0.95){
+      const t = (u - 0.65) / 0.30;
+      col = c2.clone().lerp(c3, t);
+    } else {
+      const t = (u - 0.95) / 0.05;
+      col = c3.clone().lerp(c1, t);
+    }
+
+    return { phase, lockPct, amp, ratio, delta, col, freqA, phaseDeg };
+  }
+
+  // ===== Build a ribbon of slices =====
+  const TAU_STEPS = 60;
+  const POINTS_PER_SLICE = 280;
+  const Z_RANGE = 16;
+
+  let ribbon = new THREE.Group();
+  scene.add(ribbon);
+
+  let activeLine = null;
+  let trailGroup = new THREE.Group();
+  scene.add(trailGroup);
+
+  function clearTrail(){
+    while (trailGroup.children.length){
+      const c = trailGroup.children[0];
+      trailGroup.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    }
+  }
+
+  function buildSignatureSlice(s, z, opacity){
+    const pts = [];
+    for (let p = 0; p <= POINTS_PER_SLICE; p++){
+      const t = (p / POINTS_PER_SLICE) * Math.PI * 8;
+      const x = s.amp * Math.sin(2 * Math.PI * 1.0 * t);
+      const y = s.amp * Math.sin(2 * Math.PI * s.ratio * t + s.delta);
+      pts.push(new THREE.Vector3(x, y, z));
+    }
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const m = new THREE.LineBasicMaterial({
+      color: s.col,
+      transparent: true,
+      opacity: opacity
+    });
+    return new THREE.Line(g, m);
+  }
+
+  // ===== Soft glow underlay =====
+  function buildGlow(s){
+    const pts = [];
+    for (let p = 0; p <= POINTS_PER_SLICE; p++){
+      const t = (p / POINTS_PER_SLICE) * Math.PI * 8;
+      const x = s.amp * Math.sin(2 * Math.PI * 1.0 * t);
+      const y = s.amp * Math.sin(2 * Math.PI * s.ratio * t + s.delta);
+      pts.push(new THREE.Vector3(x, y, 0));
+    }
+    const g = new THREE.BufferGeometry().setFromPoints(pts);
+    const m = new THREE.LineBasicMaterial({
+      color: s.col,
+      transparent: true,
+      opacity: 0.25,
+      linewidth: 4
+    });
+    const line = new THREE.Line(g, m);
+    line.scale.set(1.04, 1.04, 1);
+    return line;
+  }
+
+  // ===== Trail history (last N states fading) =====
+  const TRAIL_LENGTH = 25;
+  const TRAIL_Z_STEP = 0.6;
+  const trailHistory = [];
+
+  function pushTrail(state){
+    trailHistory.push({ state: { ...state }, age: 0 });
+    if (trailHistory.length > TRAIL_LENGTH){
+      trailHistory.shift();
+    }
+  }
+
+  function renderTrail(){
+    clearTrail();
+    trailHistory.forEach((h, idx) => {
+      const ageRatio = idx / TRAIL_LENGTH;
+      const z = -(TRAIL_LENGTH - idx) * TRAIL_Z_STEP;
+      const opacity = Math.pow(ageRatio, 1.5) * 0.55;
+      if (opacity < 0.02) return;
+      const slice = buildSignatureSlice(h.state, z, opacity);
+      trailGroup.add(slice);
+    });
+  }
+
+  // ===== Camera =====
+  let camRotX = 0.22;
+  let camRotY = 0.45;
+  let camDist = 22;
+
+  // ===== UI elements =====
+  const statusText = document.getElementById('status-text');
+  const statusDot = document.getElementById('status-dot');
+  const lockValue = document.getElementById('lock-value');
+  const lockFill = document.getElementById('lock-fill');
+  const freqA = document.getElementById('freq-a');
+  const phaseEl = document.getElementById('phase');
+
+  const STATUS_MAP = {
+    startup:     { text: 'Engine Startup',  dotColor: '#00d4ff' },
+    stabilising: { text: 'Stabilising',     dotColor: '#ff9a40' },
+    locked:      { text: 'Signal Locked',   dotColor: '#ffaa00' },
+    reset:       { text: 'Resetting',       dotColor: '#6b7280' }
+  };
+
+  let currentPhase = '';
+  let trailUpdateCounter = 0;
+
+  // ===== Animation loop =====
+  const t0 = performance.now();
+
+  function animate(now){
+    requestAnimationFrame(animate);
+
+    const elapsed = (now - t0) / 1000;
+    const u = (elapsed % LOOP_SEC) / LOOP_SEC;
+
+    const s = loopState(u);
+
+    // Update trail every few frames for performance
+    trailUpdateCounter++;
+    if (trailUpdateCounter % 6 === 0){
+      pushTrail(s);
+      renderTrail();
+    }
+
+    // Refresh active line
+    if (activeLine){
+      ribbon.remove(activeLine);
+      activeLine.geometry.dispose();
+      activeLine.material.dispose();
+    }
+
+    activeLine = buildSignatureSlice(s, 0, 1.0);
+    activeLine.material.color = s.col;
+    ribbon.add(activeLine);
+
+    // Glow underlay
+    const glow = buildGlow(s);
+    ribbon.add(glow);
+    setTimeout(() => {
+      ribbon.remove(glow);
+      glow.geometry.dispose();
+      glow.material.dispose();
+    }, 30);
+
+    // Update UI
+    const lockInt = Math.round(s.lockPct);
+    lockValue.textContent = lockInt + '%';
+    lockFill.style.width = lockInt + '%';
+
+    if (s.phase === 'locked'){
+      lockValue.classList.add('locked');
+      lockFill.style.boxShadow = '0 0 14px var(--accent-warm)';
+    } else {
+      lockValue.classList.remove('locked');
+      lockFill.style.boxShadow = '0 0 8px var(--accent-cool)';
+    }
+
+    freqA.textContent = s.freqA.toFixed(1) + ' Hz';
+    phaseEl.textContent = s.phaseDeg.toFixed(0) + '°';
+
+    if (s.phase !== currentPhase){
+      currentPhase = s.phase;
+      const info = STATUS_MAP[s.phase];
+      statusText.textContent = info.text;
+      statusDot.style.background = info.dotColor;
+      statusDot.style.boxShadow = '0 0 12px ' + info.dotColor;
+    }
+
+    // Slow camera drift for life
+    camRotY += 0.0008;
+
+    camera.position.x = camDist * Math.cos(camRotX) * Math.sin(camRotY);
+    camera.position.y = camDist * Math.sin(camRotX);
+    camera.position.z = camDist * Math.cos(camRotX) * Math.cos(camRotY);
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+
+  // ===== Resize =====
+  window.addEventListener('resize', () => {
+    W = host.clientWidth;
+    H = host.clientHeight;
+    camera.aspect = W/H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+})();
+</script>
+
+</body>
+</html>
