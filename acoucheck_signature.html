@@ -72,7 +72,6 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 28px 36px;
-    border-bottom: 1px solid var(--border);
   }
 
   .brand {
@@ -133,8 +132,6 @@
   .canvas-host {
     position: relative;
     overflow: hidden;
-    margin: 0 36px;
-    border: 1px solid var(--border);
   }
 
   canvas {
@@ -161,7 +158,6 @@
     display: flex;
     justify-content: flex-end;
     padding: 10px 36px;
-    border-bottom: 1px solid var(--border);
   }
 
   .status-badge {
@@ -193,7 +189,6 @@
   /* ===== BOTTOM BAR ===== */
   .bottom-bar {
     padding: 24px 36px;
-    border-top: 1px solid var(--border);
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 32px;
@@ -525,7 +520,7 @@
   // ===== Camera =====
   let camRotX = 0.22;
   let camRotY = 0.45;
-  let camDist = 10;
+  let camDist = 6;
 
   // ===== UI elements =====
   const statusText = document.getElementById('status-text');
